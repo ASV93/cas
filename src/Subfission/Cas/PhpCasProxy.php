@@ -67,19 +67,25 @@ class PhpCasProxy
         phpCAS::setLogger($logger);
     }
 
-    public function client(string $server_version, string $server_hostname,
-                          int $server_port, string $server_uri,
-                          bool $changeSessionID = true, \SessionHandlerInterface $sessionHandler = null
-    ): void
-    {
+    public function client(
+        string $server_version,
+        string $server_hostname,
+        int $server_port,
+        string $server_uri,
+        bool $changeSessionID = true,
+        \SessionHandlerInterface $sessionHandler = null
+    ): void {
         phpCAS::client($server_version, $server_hostname, $server_port, $server_uri, $changeSessionID, $sessionHandler);
     }
 
-    public function proxy(string $server_version, string $server_hostname,
-                          int $server_port, string $server_uri,
-                          bool $changeSessionID = true, \SessionHandlerInterface $sessionHandler = null
-    ): void
-    {
+    public function proxy(
+        string $server_version,
+        string $server_hostname,
+        int $server_port,
+        string $server_uri,
+        bool $changeSessionID = true,
+        \SessionHandlerInterface $sessionHandler = null
+    ): void {
         phpCAS::proxy($server_version, $server_hostname, $server_port, $server_uri, $changeSessionID, $sessionHandler);
     }
 

@@ -96,6 +96,69 @@ class CasManagerTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider configureCasChecks
+     */
+    public function testConfiguresCasWithoutSaml(bool $proxy, string $version): void
+    {
+        $serverType = $proxy ? 'proxy' : 'client';
+        $notServerType = $proxy ? 'client' : 'proxy';
+
+        $config = [
+            'cas_proxy' => $proxy,
+            'cas_version' => $version,
+            'cas_enable_saml' => false,
+        ];
+
+        $this->casProxy->expects($this->once())->method('serverTypeCas')
+            ->with($this->equalTo($version))
+            ->willReturn($version);
+
+        $this->casProxy->expects($this->once())->method($serverType)
+            ->with($this->equalTo($version));
+
+        $this->casProxy->expects($this->never())->method($notServerType);
+
+        $this->casProxy->expects($this->never())->method('handleLogoutRequests');
+
+        $this->makeCasManager($config);
+    }
+
+    /**
+     * @dataProvider configureCasChecks
+     */
+    public function testConfiguresCasWithSaml(bool $proxy, string $version): void
+    {
+        $serverType = $proxy ? 'proxy' : 'client';
+        $notServerType = $proxy ? 'client' : 'proxy';
+
+        $config = [
+            'cas_proxy' => $proxy,
+            'cas_version' => $version,
+            'cas_enable_saml' => true,
+        ];
+
+        $this->casProxy->expects($this->once())->method('serverTypeSaml')
+            ->willReturn('S1');
+
+        $this->casProxy->expects($this->once())->method($serverType)
+            ->with($this->equalTo('S1'));
+
+        $this->casProxy->expects($this->never())->method($notServerType);
+
+        $this->casProxy->expects($this->once())->method('handleLogoutRequests');
+
+        $this->makeCasManager($config);
+    }
+
+    public function configureCasChecks(): array
+    {
+        return [
+            'client' => [false, '2.0'],
+            'proxy' => [true, '2.0'],
+        ];
+    }
+
     private function makeCasManager(array $config = [], LoggerInterface $logger = null): CasManager
     {
         return new CasManager($config, $logger, $this->casProxy, $this->sessionProxy);
