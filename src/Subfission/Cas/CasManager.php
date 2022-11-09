@@ -150,8 +150,6 @@ class CasManager
             'cas_session_name'     => 'CASAuth',
             'cas_session_lifetime' => 7200,
             'cas_session_path'     => '/',
-            'cas_app_domain'       => null,
-            'cas_https_cookies'    => true,
             'cas_control_session'  => false,
             'cas_session_httponly' => true,
             'cas_port'             => 443,
@@ -171,7 +169,7 @@ class CasManager
             'cas_masquerade'       => '',
             'cas_session_domain'   => '',
             'cas_session_secure'   => false,
-            'cas_client_service'   => [],
+            'cas_client_service'   => '',
             'cas_real_hosts'       => '',
         ];
 
