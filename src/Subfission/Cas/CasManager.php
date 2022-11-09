@@ -57,15 +57,15 @@ class CasManager
         if (!$this->sessionProxy->headersSent() && $this->sessionProxy->sessionGetId() === "") {
             $this->sessionProxy->sessionSetName($this->config['cas_session_name']);
 
-			// Harden session cookie to prevent some attacks on the cookie (e.g. XSS)
-			$this->sessionProxy->sessionSetCookieParams(
-				$this->config['cas_session_lifetime'],
-				$this->config['cas_session_path'],
-				$this->config['cas_session_domain'],
-				$this->config['cas_session_secure'],
-				$this->config['cas_session_httponly']
-			);
-		}
+            // Harden session cookie to prevent some attacks on the cookie (e.g. XSS)
+            $this->sessionProxy->sessionSetCookieParams(
+                $this->config['cas_session_lifetime'],
+                $this->config['cas_session_path'],
+                $this->config['cas_session_domain'],
+                $this->config['cas_session_secure'],
+                $this->config['cas_session_httponly']
+            );
+        }
 
         $this->configureCas($this->config['cas_proxy'] ? 'proxy' : 'client');
 
@@ -117,14 +117,14 @@ class CasManager
             $server_type = $this->casProxy->serverTypeCas($this->config['cas_version']);
         }
 
-		$this->casProxy->$method(
-			$server_type,
-			$this->config['cas_hostname'],
-			(int) $this->config['cas_port'],
-			$this->config['cas_uri'],
-			$this->config['cas_client_service'],
-			$this->config['cas_control_session']
-		);
+        $this->casProxy->$method(
+            $server_type,
+            $this->config['cas_hostname'],
+            (int) $this->config['cas_port'],
+            $this->config['cas_uri'],
+            $this->config['cas_client_service'],
+            $this->config['cas_control_session']
+        );
 
         if ($this->config['cas_enable_saml']) {
             // Handle SAML logout requests that emanate from the CAS host exclusively.
