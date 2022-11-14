@@ -2,6 +2,7 @@
 
 namespace Subfission\Cas\Tests;
 
+use Faker\Factory;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Subfission\Cas\CasManager;
@@ -19,6 +20,10 @@ class CasManagerTest extends TestCase
      * @var MockObject|PhpSessionProxy|PhpSessionProxy&MockObject
      */
     private $sessionProxy;
+    /**
+     * @var \Faker\Generator
+     */
+    private $faker;
 
     public function setUp(): void
     {
@@ -26,6 +31,8 @@ class CasManagerTest extends TestCase
 
         $this->casProxy = $this->createMock(PhpCasProxy::class);
         $this->sessionProxy = $this->createMock(PhpSessionProxy::class);
+
+        $this->faker = Factory::create();
     }
 
     public function testDoesNotSetLoggerIfNotProvided(): void
@@ -156,6 +163,159 @@ class CasManagerTest extends TestCase
         return [
             'client' => [false, '2.0'],
             'proxy' => [true, '2.0'],
+        ];
+    }
+
+    public function testConfiguresCasWithClientArguments(): void
+    {
+        $config = [
+            'cas_enable_saml' => false,
+            'cas_hostname' => $this->faker->domainName(),
+            'cas_port' => $this->faker->numberBetween(1, 1024),
+            'cas_uri' => $this->faker->url(),
+            'cas_client_service' => $this->faker->url(),
+            'cas_control_session' => $this->faker->boolean(),
+        ];
+
+        $this->casProxy->expects($this->once())->method('serverTypeCas')
+            ->willReturnArgument(0);
+
+        $this->casProxy->expects($this->once())->method('client')
+            ->with(
+                $this->anything(),
+                $this->equalTo($config['cas_hostname']),
+                $this->equalTo($config['cas_port']),
+                $this->equalTo($config['cas_uri']),
+                $this->equalTo($config['cas_client_service']),
+                $this->equalTo($config['cas_control_session'])
+            );
+
+        $this->makeCasManager($config);
+    }
+
+    public function testConfiguresLogoutHandlingWhenUsingSaml(): void
+    {
+        $realhosts = [
+            $this->faker->domainName(),
+            $this->faker->domainName(),
+        ];
+
+        $config = [
+            'cas_enable_saml' => true,
+            'cas_real_hosts' => implode(',', $realhosts),
+        ];
+
+        $this->casProxy->expects($this->once())->method('handleLogoutRequests')
+            ->with(
+                $this->equalTo(true),
+                $this->equalTo($realhosts)
+            );
+
+        $this->makeCasManager($config);
+    }
+
+    /**
+     * @dataProvider casValidationChecks
+     */
+    public function testConfiguresCasValidation(?string $casValidation, bool $willValidate): void
+    {
+        $config = [
+            'cas_validation' => $casValidation,
+            'cas_cert' => $this->faker->filePath(),
+            'cas_validate_cn' => $this->faker->boolean(),
+        ];
+
+        if ($willValidate) {
+            $this->casProxy->expects($this->never())->method('setNoCasServerValidation');
+            $this->casProxy->expects($this->once())->method('setCasServerCACert')
+                ->with($this->equalTo($config['cas_cert']), $this->equalTo($config['cas_validate_cn']));
+        } else {
+            $this->casProxy->expects($this->once())->method('setNoCasServerValidation');
+            $this->casProxy->expects($this->never())->method('setCasServerCACert');
+        }
+
+        $this->makeCasManager($config);
+    }
+
+    public function casValidationChecks(): array
+    {
+        return [
+            'no validation' => [null, false],
+            'ca validation' => ['ca', true],
+            'self validation' => ['self', true],
+        ];
+    }
+
+    public function testSetsServerLoginUrl(): void
+    {
+        $config = [
+            'cas_login_url' => $this->faker->url(),
+        ];
+
+        $this->casProxy->expects($this->once())->method('setServerLoginURL')
+            ->with($this->equalTo($config['cas_login_url']));
+
+        $this->makeCasManager($config);
+    }
+
+    public function testSetsServerLogoutUrl(): void
+    {
+        $config = [
+            'cas_logout_url' => $this->faker->url(),
+        ];
+
+        $this->casProxy->expects($this->once())->method('setServerLogoutURL')
+            ->with($this->equalTo($config['cas_logout_url']));
+
+        $this->makeCasManager($config);
+    }
+
+    /**
+     * @dataProvider fixedServiceUrlChecks
+     */
+    public function testSetsFixedServiceUrlIfGiven(bool $willSet): void
+    {
+        $config = [
+            'cas_redirect_path' => $willSet ? $this->faker->url() : null
+        ];
+
+        if ($willSet) {
+            $this->casProxy->expects($this->once())->method('setFixedServiceURL')
+                ->with($this->equalTo($config['cas_redirect_path']));
+        } else {
+            $this->casProxy->expects($this->never())->method('setFixedServiceURL');
+        }
+
+        $this->makeCasManager($config);
+    }
+
+    public function fixedServiceUrlChecks(): array
+    {
+        return [
+            'no url' => [false],
+            'url' => [true],
+        ];
+    }
+
+    /**
+     * @dataProvider masqueradeChecks
+     */
+    public function testSetsMasquerade(bool $masquerade): void
+    {
+        $config = [
+            'cas_masquerade' => $masquerade
+        ];
+
+        $manager = $this->makeCasManager($config);
+
+        $this->assertEquals($masquerade, $manager->isMasquerading());
+    }
+
+    public function masqueradeChecks(): array
+    {
+        return [
+            'masquerade' => [true],
+            'no masquerade' => [false],
         ];
     }
 

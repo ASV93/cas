@@ -2,7 +2,6 @@
 
 namespace Subfission\Cas;
 
-use phpCAS;
 use Psr\Log\LoggerInterface;
 
 class CasManager
