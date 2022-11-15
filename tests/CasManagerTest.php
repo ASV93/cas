@@ -300,7 +300,7 @@ class CasManagerTest extends TestCase
     /**
      * @dataProvider masqueradeChecks
      */
-    public function testSetsMasquerade(bool $masquerade): void
+    public function testSetsMasquerade(?string $masquerade): void
     {
         $config = [
             'cas_masquerade' => $masquerade
@@ -308,15 +308,148 @@ class CasManagerTest extends TestCase
 
         $manager = $this->makeCasManager($config);
 
-        $this->assertEquals($masquerade, $manager->isMasquerading());
+        $this->assertEquals(!empty($masquerade), $manager->isMasquerading());
     }
 
     public function masqueradeChecks(): array
     {
         return [
-            'masquerade' => [true],
-            'no masquerade' => [false],
+            'masquerade' => ['bob'],
+            'no masquerade' => [null],
         ];
+    }
+
+    public function testAuthenticateUser(): void
+    {
+        $this->casProxy->expects($this->once())->method('forceAuthentication')
+            ->willReturn(true);
+
+        $manager = $this->makeCasManager();
+
+        $this->assertTrue($manager->authenticate());
+    }
+
+    public function testAuthenticateUserWhenMasquerading(): void
+    {
+        $this->casProxy->expects($this->never())->method('forceAuthentication');
+
+        $config = [
+            'cas_masquerade' => 'bob'
+        ];
+
+        $manager = $this->makeCasManager($config);
+
+        $this->assertTrue($manager->authenticate());
+    }
+
+    public function testGetUser(): void
+    {
+        $this->casProxy->expects($this->once())->method('getUser')
+            ->willReturn('frank');
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals('frank', $manager->user());
+    }
+
+    public function testGetCurrentUser(): void
+    {
+        $this->casProxy->expects($this->once())->method('getUser')
+            ->willReturn('frank');
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals('frank', $manager->getCurrentUser());
+    }
+
+    public function testGetUserWhenMasquerading(): void
+    {
+        $this->casProxy->expects($this->never())->method('getUser');
+
+        $config = [
+            'cas_masquerade' => 'bob'
+        ];
+
+        $manager = $this->makeCasManager($config);
+
+        $this->assertEquals('bob', $manager->user());
+        $this->assertEquals('bob', $manager->getCurrentUser());
+    }
+
+    public function testGetAttribute(): void
+    {
+        $this->casProxy->expects($this->once())->method('getAttribute')
+            ->with($this->equalTo('name'))
+            ->willReturn('frank');
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals('frank', $manager->getAttribute('name'));
+    }
+
+    public function testHasAttribute(): void
+    {
+        $hasAttribute = $this->faker->boolean();
+
+        $this->casProxy->expects($this->once())->method('hasAttribute')
+            ->with($this->equalTo('name'))
+            ->willReturn($hasAttribute);
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals($hasAttribute, $manager->hasAttribute('name'));
+    }
+
+    public function testGetAttributes(): void
+    {
+        $attributes = [
+            'name' => 'frank',
+        ];
+
+        $this->casProxy->expects($this->once())->method('getAttributes')
+            ->willReturn($attributes);
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals($attributes, $manager->getAttributes());
+    }
+
+    public function testGetAttributeWhenMasquerading(): void
+    {
+        $this->casProxy->expects($this->never())->method('getAttribute');
+
+        $manager = $this->makeCasManager(['cas_masquerade' => 'bob']);
+        $manager->setAttributes(['name' => 'frank']);
+
+        $this->assertEquals('frank', $manager->getAttribute('name'));
+    }
+
+    public function testHasAttributeWhenMasquerading(): void
+    {
+        $hasAttribute = $this->faker->boolean();
+
+        $attributes = $hasAttribute ? ['name' => 'frank'] : [];
+
+        $this->casProxy->expects($this->never())->method('hasAttribute');
+
+        $manager = $this->makeCasManager(['cas_masquerade' => 'bob']);
+        $manager->setAttributes($attributes);
+
+        $this->assertEquals($hasAttribute, $manager->hasAttribute('name'));
+    }
+
+    public function testGetAttributesWhenMasquerading(): void
+    {
+        $attributes = [
+            'name' => 'frank',
+        ];
+
+        $this->casProxy->expects($this->never())->method('getAttributes');
+
+        $manager = $this->makeCasManager(['cas_masquerade' => 'bob']);
+        $manager->setAttributes($attributes);
+
+        $this->assertEquals($attributes, $manager->getAttributes());
     }
 
     private function makeCasManager(array $config = [], LoggerInterface $logger = null): CasManager

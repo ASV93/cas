@@ -116,6 +116,11 @@ class PhpCasProxy
         return phpCAS::getUser();
     }
 
+    public function getAttributes(): array
+    {
+        return phpCAS::getAttributes();
+    }
+
     public function getAttribute(string $key)
     {
         return phpCAS::getAttribute($key);
