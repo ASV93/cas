@@ -512,6 +512,70 @@ class CasManagerTest extends TestCase
         $manager->logout();
     }
 
+    public function testLogoutWithUrl(): void
+    {
+        $url = $this->faker->url();
+
+        $this->casProxy->expects($this->once())->method('logout')
+            ->with($this->equalTo(['url' => $url]));
+
+        $manager = $this->makeCasManager();
+
+        $manager->logoutWithUrl($url);
+    }
+
+    /**
+     * @dataProvider authenticatedChecks
+     */
+    public function testIsAuthenticated(bool $authenticated): void
+    {
+        $this->casProxy->expects($this->once())->method('isAuthenticated')
+            ->willReturn($authenticated);
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals($authenticated, $manager->isAuthenticated());
+    }
+
+    public function testIsAuthenticatedWhenMasquerading(): void
+    {
+        $this->casProxy->expects($this->never())->method('isAuthenticated');
+
+        $manager = $this->makeCasManager(['cas_masquerade' => 'bob']);
+
+        $this->assertTrue($manager->isAuthenticated());
+    }
+
+    /**
+     * @dataProvider authenticatedChecks
+     */
+    public function testCheckAuthentication(bool $authenticated): void
+    {
+        $this->casProxy->expects($this->once())->method('checkAuthentication')
+            ->willReturn($authenticated);
+
+        $manager = $this->makeCasManager();
+
+        $this->assertEquals($authenticated, $manager->checkAuthentication());
+    }
+
+    public function authenticatedChecks(): array
+    {
+        return [
+            'is authenticated' => [true],
+            'is not authenticated' => [false],
+        ];
+    }
+
+    public function testCheckAuthenticationWhenMasquerading(): void
+    {
+        $this->casProxy->expects($this->never())->method('checkAuthentication');
+
+        $manager = $this->makeCasManager(['cas_masquerade' => 'bob']);
+
+        $this->assertTrue($manager->checkAuthentication());
+    }
+
     private function makeCasManager(array $config = [], LoggerInterface $logger = null): CasManager
     {
         return new CasManager($config, $logger, $this->casProxy, $this->sessionProxy, $this->logoutStrategy);

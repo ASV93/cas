@@ -29,7 +29,7 @@ class CasManager
     protected $sessionProxy;
 
     /**
-     * @var LogoutNormal|LogoutStrategy
+     * @var LogoutStrategy
      */
     private $logoutStrategy;
 
@@ -57,7 +57,7 @@ class CasManager
         $this->logger = $logger;
         $this->casProxy = $casProxy ?? new PhpCasProxy();
         $this->sessionProxy = $sessionProxy ?? new PhpSessionProxy();
-        $this->logoutStrategy = $logoutStrategy ?? new LogoutNormal();
+        $this->logoutStrategy = $logoutStrategy ?? new LogoutStrategy();
 
         $this->parseConfig($config);
 
