@@ -54,8 +54,7 @@ class CasManager
         PhpCasProxy     $casProxy = null,
         PhpSessionProxy $sessionProxy = null,
         LogoutStrategy  $logoutStrategy = null
-    )
-    {
+    ) {
         $this->logger = $logger;
         $this->casProxy = $casProxy ?? new PhpCasProxy();
         $this->sessionProxy = $sessionProxy ?? new PhpSessionProxy();
