@@ -7,6 +7,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Subfission\Cas\CasManager;
 use PHPUnit\Framework\TestCase;
+use Subfission\Cas\LogoutStrategy;
 use Subfission\Cas\PhpCasProxy;
 use Subfission\Cas\PhpSessionProxy;
 
@@ -24,6 +25,10 @@ class CasManagerTest extends TestCase
      * @var \Faker\Generator
      */
     private $faker;
+    /**
+     * @var MockObject|LogoutStrategy|LogoutStrategy&MockObject
+     */
+    private $logoutStrategy;
 
     public function setUp(): void
     {
@@ -31,6 +36,7 @@ class CasManagerTest extends TestCase
 
         $this->casProxy = $this->createMock(PhpCasProxy::class);
         $this->sessionProxy = $this->createMock(PhpSessionProxy::class);
+        $this->logoutStrategy = $this->createMock(LogoutStrategy::class);
 
         $this->faker = Factory::create();
     }
@@ -452,8 +458,62 @@ class CasManagerTest extends TestCase
         $this->assertEquals($attributes, $manager->getAttributes());
     }
 
+    public function testLogoutOfCas(): void
+    {
+        $this->casProxy->expects($this->once())->method('logout');
+        $this->logoutStrategy->expects($this->once())->method('completeLogout');
+
+        $manager = $this->makeCasManager();
+
+        $manager->logout();
+    }
+
+    /**
+     * @dataProvider logoutParameterChecks
+     */
+    public function testLogoutWithParameters(string $url, string $service): void
+    {
+        $expects = [];
+
+        if (!empty($url)) {
+            $expects['url'] = $url;
+        }
+
+        if (!empty($service)) {
+            $expects['service'] = $service;
+        }
+
+        $this->casProxy->expects($this->once())->method('logout')
+            ->with($this->equalTo($expects));
+
+        $manager = $this->makeCasManager();
+
+        $manager->logout($url, $service);
+    }
+
+    public function logoutParameterChecks(): array
+    {
+        return [
+            'url' => ['https://example.com', ''],
+            'service' => ['', 'https://other.com'],
+            'both' => ['https://example.com', 'https://other.com']
+        ];
+    }
+
+    public function testLogoutUsesCasRedirect(): void
+    {
+        $redirectUrl = $this->faker->url();
+
+        $this->casProxy->expects($this->once())->method('logout')
+            ->with($this->equalTo(['service' => $redirectUrl]));
+
+        $manager = $this->makeCasManager(['cas_logout_redirect' => $redirectUrl]);
+
+        $manager->logout();
+    }
+
     private function makeCasManager(array $config = [], LoggerInterface $logger = null): CasManager
     {
-        return new CasManager($config, $logger, $this->casProxy, $this->sessionProxy);
+        return new CasManager($config, $logger, $this->casProxy, $this->sessionProxy, $this->logoutStrategy);
     }
 }

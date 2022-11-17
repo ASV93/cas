@@ -12,6 +12,11 @@ class CasManager
     protected $config;
 
     /**
+     * @var LoggerInterface|null
+     */
+    private $logger;
+
+    /**
      * Proxy object for the phpCAS global
      * @var PhpCasProxy
      */
@@ -22,6 +27,11 @@ class CasManager
      * @var PhpSessionProxy
      */
     protected $sessionProxy;
+
+    /**
+     * @var LogoutNormal|LogoutStrategy
+     */
+    private $logoutStrategy;
 
     /**
      * Attributes used for overriding or masquerading.
@@ -38,11 +48,16 @@ class CasManager
      * @param PhpCasProxy|null $casProxy
      * @param PhpSessionProxy|null $sessionProxy
      */
-    public function __construct(array $config, LoggerInterface $logger = null, PhpCasProxy $casProxy = null, PhpSessionProxy $sessionProxy = null)
+    public function __construct(array           $config,
+                                LoggerInterface $logger = null,
+                                PhpCasProxy     $casProxy = null,
+                                PhpSessionProxy $sessionProxy = null,
+                                LogoutStrategy  $logoutStrategy = null)
     {
         $this->logger = $logger;
         $this->casProxy = $casProxy ?? new PhpCasProxy();
         $this->sessionProxy = $sessionProxy ?? new PhpSessionProxy();
+        $this->logoutStrategy = $logoutStrategy ?? new LogoutNormal();
 
         $this->parseConfig($config);
 
@@ -302,8 +317,10 @@ class CasManager
         if ($url) {
             $params['url'] = $url;
         }
+
         $this->casProxy->logout($params);
-        exit;
+
+        $this->logoutStrategy->completeLogout();
     }
 
 
